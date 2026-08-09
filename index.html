@@ -119,6 +119,7 @@ async function loadRecap(){
 
   const m=$("#month").value;
   const sid=$("#studentFilter").value;
+
   const start=m+"-01";
   const end=new Date(
     new Date(start).getFullYear(),
@@ -167,7 +168,7 @@ async function loadRecap(){
               <th>Tanggal</th>
               <th>Status</th>
               <th>Jam</th>
-              <th>Aksi</th>
+              <th class="no-print">Aksi</th>
             </tr>
           </thead>
 
@@ -175,11 +176,8 @@ async function loadRecap(){
             ${rows.map((r,i)=>`
               <tr>
                 <td>${i+1}</td>
-
                 <td>${esc(r.students?.code||"")}</td>
-
                 <td>${esc(r.students?.name||"")}</td>
-
                 <td>${r.attendance_date||"-"}</td>
 
                 <td>
@@ -187,24 +185,31 @@ async function loadRecap(){
                 </td>
 
                 <td>
-                  ${r.scan_time
-                    ? new Date(r.scan_time)
-                        .toLocaleTimeString("id-ID")
+                  ${
+                    r.scan_time
+                    ? new Date(r.scan_time).toLocaleTimeString("id-ID")
                     : "-"
                   }
                 </td>
 
-                <td style="white-space:nowrap">
+                <td class="no-print" style="white-space:nowrap">
 
                   <button
                     type="button"
-                    onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">
+                    onclick="editAttendance(
+                      '${r.student_id}',
+                      '${r.attendance_date}',
+                      '${r.status}'
+                    )">
                     ✏️ Edit
                   </button>
 
                   <button
                     type="button"
-                    onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">
+                    onclick="deleteAttendance(
+                      '${r.student_id}',
+                      '${r.attendance_date}'
+                    )">
                     🗑️ Hapus
                   </button>
 
@@ -216,7 +221,6 @@ async function loadRecap(){
       </div>
     </div>`;
 }
-
 
 /* =========================
    EDIT STATUS ABSENSI
