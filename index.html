@@ -92,7 +92,7 @@ function putarLagu(){
 const CONFIG={SUPABASE_URL:"https://akkzhhgqqzzadzudlcfu.supabase.co",SUPABASE_KEY:"sb_publishable_r9DWINq7OH2jlWFuhsi-dA_VakEzWj6"};
 let sb=null, students=[], scanner=null;
 const $=id=>document.getElementById(id);
-function configured(){return CONFIG.SUPABASE_URL.startsWith("http")&&!CONFIG.SUPABASE_KEY.startsWith("PASTE_")}
+function configured(){return CONFIG.SUPABASE_URL.startsWith("http")&&CONFIG.SUPABASE_KEY.length>20}
 async function init(){
  $("month").value=new Date().toISOString().slice(0,7);
  if(!configured()){return}
