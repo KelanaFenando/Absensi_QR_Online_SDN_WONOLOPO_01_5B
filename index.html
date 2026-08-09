@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Absensi QR Online - SDN Wonolopo 01 Kelas 5B</title>
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<style>
+:root{--red:#d71920;--dark:#073b63;--green:#087f70;--light:#f7f9fb;--card:#fff;--shadow:0 10px 28px #0002}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#172033;background:#eee url('wallpaper(1).png') center top/cover fixed no-repeat}
+body:before{content:"";position:fixed;inset:0;background:#fff8;z-index:-1}
+header{background:linear-gradient(135deg,#087f70,#05665d);color:white;padding:18px 24px;position:sticky;top:0;z-index:20;box-shadow:0 4px 14px #0003}
+header h1{margin:0;font-size:28px}header p{margin:5px 0 14px;font-weight:bold}
+nav{display:flex;gap:9px;flex-wrap:wrap}button,.btn{border:0;border-radius:10px;padding:11px 16px;font-weight:bold;cursor:pointer;background:#087f70;color:white}button:hover{filter:brightness(.95)}button.light{background:#fff;color:#075f58}button.red{background:#c51b25}button.blue{background:#145da0}button.gray{background:#596273}
+main{max-width:1200px;margin:20px auto;padding:0 14px}.tab{display:none}.tab.active{display:block}.card{background:#fffffff2;border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
+.notice{border-left:7px solid var(--red)}.notice h2{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}.stat{background:#fff;border-radius:15px;padding:18px;box-shadow:var(--shadow)}.stat b{display:block;font-size:30px;margin-top:8px;color:var(--dark)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.form label{font-weight:bold}.form input,.form select{width:100%;padding:10px;border:1px solid #ccd4df;border-radius:9px;margin-top:5px}
+table{width:100%;border-collapse:collapse;background:white}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{background:#eaf1f6}td input{width:100%;padding:7px;border:1px solid #ccd4df;border-radius:7px}.scroll{overflow:auto}
+#reader{max-width:520px;margin:auto}.scanbox{text-align:center}.result{font-size:18px;padding:14px;border-radius:10px;background:#eef8f6;margin-top:12px;min-height:48px}.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:bold}.Hadir{background:#d9f7e8;color:#08753f}.Izin{background:#fff0bd;color:#7b5a00}.Sakit{background:#dcecff;color:#15579b}.Alpa{background:#ffdede;color:#a80000}
+.qrgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}.qrcard{background:#fff;border:1px solid #ddd;border-radius:12px;padding:15px;text-align:center}.qrcard>div{display:flex;justify-content:center}.qrcard b{display:block;margin:8px}.small{font-size:13px;color:#647084}.footer{text-align:center;padding:20px;color:#fff;font-weight:bold;text-shadow:0 1px 3px #000}.music{position:fixed;right:18px;bottom:18px;z-index:30;border-radius:30px}.hidden{display:none!important}
+@media print{header,.no-print,.music,body:before{display:none!important}body{background:white}.card{box-shadow:none}.tab{display:none}.tab.active{display:block}.qrgrid{grid-template-columns:repeat(3,1fr)}.qrcard{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header>
+<h1>ABSENSI QR ONLINE</h1><p>SDN WONOLOPO 01 · KELAS 5B · 30 SISWA</p>
+<nav class="no-print"><button onclick="showTab('dashboard')">🏠 Dashboard</button><button onclick="showTab('scan')">📷 Scan QR</button><button onclick="showTab('students')">👨‍🎓 Data Siswa</button><button onclick="showTab('recap')">📊 Rekap</button><button class="light" onclick="toggleMusic()" id="musicBtn">🎵 Putar Lagu</button></nav>
+</header>
+<main>
+<section id="dashboard" class="tab active">
+<div class="card notice"><h2>Selamat Datang</h2><p>Scan QR siswa untuk mencatat <b>Hadir</b>. Untuk Izin atau Sakit, pilih status pada halaman Scan QR sebelum melakukan scan.</p><p><b>Catatan:</b> aplikasi ini tidak membutuhkan Supabase. Data tersimpan di browser/perangkat yang digunakan.</p></div>
+<div class="grid"><div class="stat">Jumlah siswa<b id="total">30</b></div><div class="stat">Hadir hari ini<b id="hadir">0</b></div><div class="stat">Izin<b id="izin">0</b></div><div class="stat">Sakit<b id="sakit">0</b></div><div class="stat">Alpa<b id="alpa">0</b></div></div>
+<div class="card"><h2>Absensi Hari Ini</h2><div class="scroll" id="today"></div></div>
+</section>
+<section id="scan" class="tab">
+<div class="card scanbox"><h2>📷 Scan QR Siswa Kelas 5B</h2><div class="form" style="max-width:500px;margin:auto"><label>Status<input type="hidden"><select id="scanStatus"><option>Hadir</option><option>Izin</option><option>Sakit</option><option>Alpa</option></select></label></div><div class="actions" style="justify-content:center"><button class="blue" onclick="startScanner()">▶ Mulai Kamera</button><button class="gray" onclick="stopScanner()">■ Berhenti</button></div><div id="reader"></div><div class="result" id="scanMsg">Kamera siap digunakan.</div><hr><h3>Input Kode Manual</h3><div class="form" style="max-width:500px;margin:auto"><label>Kode QR<input id="manualCode" placeholder="Contoh: 5B-001"></label></div><div class="actions" style="justify-content:center"><button onclick="manualAttendance()">Simpan Absensi</button></div></div>
+</section>
+<section id="students" class="tab">
+<div class="card"><h2>👨‍🎓 Data Siswa Kelas 5B</h2><p class="small">Sudah tersedia 30 kode QR. Ubah nama/NIS/NISN lalu klik Simpan.</p><div class="actions no-print"><button onclick="saveStudents()">💾 Simpan Data Siswa</button><button class="blue" onclick="printAllQR()">🖨️ Cetak 30 QR</button><button class="gray" onclick="downloadBackup()">⬇️ Backup Data</button><label class="btn gray">⬆️ Pulihkan Data <input id="restoreFile" type="file" accept="application/json" hidden onchange="restoreBackup(event)"></label></div><div class="scroll" id="studentsTable"></div></div>
+</section>
+<section id="recap" class="tab">
+<div class="card no-print"><h2>📊 Rekap Kehadiran</h2><div class="form"><label>Bulan<input type="month" id="month"></label><label>Siswa<select id="studentFilter"></select></label></div><div class="actions"><button onclick="loadRecap()">Tampilkan Rekap</button><button class="light" onclick="window.print()">🖨️ Print</button><button class="gray" onclick="downloadCSV()">⬇️ CSV</button></div></div><div class="card" id="recapContent"></div></section>
+</main>
+<div class="footer">SDN WONOLOPO 01 · Kelas 5B · Berkarakter, Berprestasi, Berbudaya</div>
+<audio id="music" src="rukun-sama-teman.mp3" loop></audio>
+<script>
+const KEY='absensi_qr_5b_v2';
+const STUDENT_KEY='absensi_students_5b_v2';
+let scanner=null;
+let students=[];
+const $=id=>document.getElementById(id);
+function defaultStudents(){return Array.from({length:30},(_,i)=>({no:i+1,code:`5B-${String(i+1).padStart(3,'0')}`,name:`Siswa ${i+1}`,nis:'',nisn:''}));}
+function loadLocal(){try{students=JSON.parse(localStorage.getItem(STUDENT_KEY))||defaultStudents()}catch(e){students=defaultStudents()} if(!Array.isArray(students)||students.length!==30)students=defaultStudents();}
+function saveLocal(){localStorage.setItem(STUDENT_KEY,JSON.stringify(students));}
+function attendanceData(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
+function saveAttendanceData(x){localStorage.setItem(KEY,JSON.stringify(x));}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');if(id==='dashboard')dashboard();if(id==='students')renderStudents();if(id==='recap'){populateFilter();loadRecap()}}
+function renderStudents(){
+ $('studentsTable').innerHTML=`<table><thead><tr><th>No</th><th>Kode QR</th><th>Nama</th><th>NIS</th><th>NISN</th><th>QR</th></tr></thead><tbody>${students.map((s,i)=>`<tr><td>${i+1}</td><td><b>${esc(s.code)}</b></td><td><input id="n${i}" value="${esc(s.name)}"></td><td><input id="nis${i}" value="${esc(s.nis)}"></td><td><input id="nisn${i}" value="${esc(s.nisn)}"></td><td><button onclick="printOneQR(${i})">QR</button></td></tr>`).join('')}</tbody></table>`;
+}
+function saveStudents(){students=students.map((s,i)=>({...s,name:$('n'+i).value.trim()||`Siswa ${i+1}`,nis:$('nis'+i).value.trim(),nisn:$('nisn'+i).value.trim()}));saveLocal();renderStudents();populateFilter();alert('Data 30 siswa berhasil disimpan di perangkat ini.');}
+function findStudent(code){return students.find(s=>s.code.toUpperCase()===String(code).trim().toUpperCase())}
+function recordAttendance(code,status){const s=findStudent(code);if(!s){$('scanMsg').innerHTML=`<b>Kode ${esc(code)} tidak ditemukan.</b>`;return false}const d=attendanceData();d[`${todayISO()}_${s.code}`]={date:todayISO(),code:s.code,name:s.name,status,scanTime:new Date().toISOString()};saveAttendanceData(d);$('scanMsg').innerHTML=`<b>✅ ${esc(s.name)}</b><br>Berhasil dicatat: <span class="badge ${status}">${status}</span>`;dashboard();return true}
+function manualAttendance(){const code=$('manualCode').value.trim();if(recordAttendance(code,$('scanStatus').value))$('manualCode').value=''}
+function dashboard(){const d=attendanceData(),today=todayISO();let rows=Object.values(d).filter(x=>x.date===today).sort((a,b)=>a.scanTime.localeCompare(b.scanTime));let c={Hadir:0,Izin:0,Sakit:0,Alpa:0};rows.forEach(x=>c[x.status]++);$('total').textContent=students.length;$('hadir').textContent=c.Hadir;$('izin').textContent=c.Izin;$('sakit').textContent=c.Sakit;$('alpa').textContent=c.Alpa;$('today').innerHTML=rows.length?`<table><thead><tr><th>Jam</th><th>Kode</th><th>Nama</th><th>Status</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${new Date(x.scanTime).toLocaleTimeString('id-ID')}</td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="badge ${x.status}">${x.status}</span></td></tr>`).join('')}</tbody></table>`:'<p>Belum ada absensi hari ini.</p>'}
+async function startScanner(){if(scanner)return;if(!window.Html5Qrcode){alert('Scanner belum termuat. Pastikan internet aktif.');return}scanner=new Html5Qrcode('reader');try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:250}},code=>{recordAttendance(code,$('scanStatus').value)},()=>{})}catch(e){scanner=null;alert('Kamera tidak dapat dibuka. Izinkan kamera dan gunakan HTTPS/localhost.')}}
+async function stopScanner(){if(scanner){try{await scanner.stop()}catch(e){}try{scanner.clear()}catch(e){}scanner=null}}
+function populateFilter(){ $('studentFilter').innerHTML='<option value="">Semua siswa</option>'+students.map(s=>`<option value="${esc(s.code)}">${esc(s.code)} - ${esc(s.name)}</option>`).join('') }
+function loadRecap(){const m=$('month').value;if(!m){$('recapContent').innerHTML='<p>Pilih bulan terlebih dahulu.</p>';return}const sid=$('studentFilter').value;const d=attendanceData();const rows=Object.values(d).filter(x=>x.date.startsWith(m)&&( !sid||x.code===sid));let groups={};students.filter(s=>!sid||s.code===sid).forEach(s=>groups[s.code]={...s,Hadir:0,Izin:0,Sakit:0,Alpa:0,Total:0});rows.forEach(x=>{if(!groups[x.code])groups[x.code]={code:x.code,name:x.name,Hadir:0,Izin:0,Sakit:0,Alpa:0,Total:0};groups[x.code][x.status]=(groups[x.code][x.status]||0)+1;groups[x.code].Total++});let arr=Object.values(groups);$('recapContent').innerHTML=`<h2>Rekap ${m} — SDN WONOLOPO 01 Kelas 5B</h2><div class="scroll"><table><thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Total</th></tr></thead><tbody>${arr.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td>${x.Hadir}</td><td>${x.Izin}</td><td>${x.Sakit}</td><td>${x.Alpa}</td><td>${x.Total}</td></tr>`).join('')}</tbody></table></div><h3>Detail</h3><div class="scroll"><table><thead><tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Kode</th><th>Nama</th><th>Status</th></tr></thead><tbody>${rows.sort((a,b)=>(a.date+a.scanTime).localeCompare(b.date+b.scanTime)).map((x,i)=>`<tr><td>${i+1}</td><td>${x.date}</td><td>${new Date(x.scanTime).toLocaleTimeString('id-ID')}</td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="badge ${x.status}">${x.status}</span></td></tr>`).join('')}</tbody></table></div>`}
+function qrHTML(s,i){return `<div class="qrcard"><div id="qr${i}"></div><b>${esc(s.name)}</b><span>${esc(s.code)}</span></div>`}
+function printOneQR(i){const s=students[i],w=window.open('','_blank');w.document.write(`<!doctype html><title>QR ${esc(s.name)}</title><style>body{text-align:center;font-family:Arial;padding:30px}#q{display:flex;justify-content:center}</style><h2>SDN WONOLOPO 01</h2><h3>KELAS 5B</h3><div id=q></div><h2>${esc(s.name)}</h2><p>${esc(s.code)}</p><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><script>new QRCode(q,{text:${JSON.stringify(s.code)},width:280,height:280});setTimeout(()=>print(),700)<\/script>`);w.document.close()}
+function printAllQR(){const w=window.open('','_blank');w.document.write(`<!doctype html><title>QR 30 Siswa</title><style>body{font-family:Arial}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.x{text-align:center;border:1px solid #ccc;padding:10px;break-inside:avoid}.x div{display:flex;justify-content:center}h2{text-align:center}@media print{.x{break-inside:avoid}}</style><h2>SDN WONOLOPO 01 — KELAS 5B</h2><div class=grid>${students.map((s,i)=>`<div class=x><div id=q${i}></div><b>${esc(s.name)}</b><br>${esc(s.code)}</div>`).join('')}</div><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><script>${students.map((s,i)=>`new QRCode(document.getElementById('q${i}'),{text:${JSON.stringify(s.code)},width:150,height:150});`).join('')}setTimeout(()=>print(),1000)<\/script>`);w.document.close()}
+function downloadBackup(){const data={students,attendance:attendanceData(),exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='backup-absensi-5B.json';a.click()}
+function restoreBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(Array.isArray(x.students)&&x.students.length===30){students=x.students;saveLocal()}if(x.attendance)localStorage.setItem(KEY,JSON.stringify(x.attendance));renderStudents();dashboard();alert('Backup berhasil dipulihkan.')}catch(err){alert('File backup tidak valid.')}};r.readAsText(f)}
+function downloadCSV(){const m=$('month').value;if(!m){alert('Pilih bulan terlebih dahulu.');return}const sid=$('studentFilter').value;const rows=Object.values(attendanceData()).filter(x=>x.date.startsWith(m)&&(!sid||x.code===sid));let csv='Tanggal,Jam,Kode,Nama,Status\n'+rows.map(x=>[x.date,new Date(x.scanTime).toLocaleTimeString('id-ID'),x.code,x.name,x.status].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`rekap-absensi-${m}.csv`;a.click()}
+function toggleMusic(){const m=$('music');if(m.paused){m.play().then(()=>{$('musicBtn').textContent='⏸️ Hentikan Lagu'}).catch(()=>alert('Klik tombol lagi jika browser memblokir audio.'))}else{m.pause();$('musicBtn').textContent='🎵 Putar Lagu'}}
+loadLocal();$('month').value=new Date().toISOString().slice(0,7);renderStudents();populateFilter();dashboard();
+</script>
+</body></html>
