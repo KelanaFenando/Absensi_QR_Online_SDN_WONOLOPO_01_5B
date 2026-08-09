@@ -114,7 +114,103 @@ async function startScanner(){if(!window.Html5Qrcode){alert("Scanner belum termu
 async function stopScanner(){if(scanner){try{await scanner.stop()}catch(e){}scanner.clear();scanner=null}}
 function oneQR(code,name){let w=open("","_blank","width=500,height=650");w.document.write(`<body style="font-family:Arial;text-align:center;padding:30px"><h2>SDN WONOLOPO 01</h2><h3>Kelas 5B</h3><div id=q></div><h3>${name}</h3><p>${code}</p><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><script>new QRCode(q,{text:${JSON.stringify(code)},width:260,height:260});setTimeout(()=>print(),700)<\/script>`);w.document.close()}
 function printQR(){let w=open("","_blank");w.document.write(`<style>body{font-family:Arial}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.x{text-align:center;border:1px solid #ddd;padding:12px;page-break-inside:avoid}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><h2>SDN WONOLOPO 01 — Kelas 5B</h2><div class=grid>${students.map((s,i)=>`<div class=x><div id=q${i}></div><b>${esc(s.name)}</b><br>${s.code}</div>`).join("")}</div><script>${students.map((s,i)=>`new QRCode(q${i},{text:${JSON.stringify(s.code)},width:150,height:150});`).join("")}setTimeout(()=>print(),1000)<\/script>`);w.document.close()}
-async function loadRecap(){if(!sb)return;let m=$("month").value, sid=$("studentFilter").value;let start=m+"-01",end=new Date(new Date(start).getFullYear(),new Date(start).getMonth()+1,1).toISOString().slice(0,10);let q=sb.from("attendance").select("status,students(id,code,name)").gte("attendance_date",start).lt("attendance_date",end);if(sid)q=q.eq("student_id",sid);let {data,error}=await q;if(error){alert(error.message);return}let map={};(data||[]).forEach(a=>{let s=a.students;if(!map[s.id])map[s.id]={code:s.code,name:s.name,Hadir:0,Izin:0,Sakit:0,Alpa:0};map[s.id][a.status]++});let arr=Object.values(map);$("recapTable").innerHTML=`<h2>Rekap ${esc(m)} — SDN WONOLOPO 01 Kelas 5B</h2><table><thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Total</th></tr></thead><tbody>${arr.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.code)}</td><td>${esc(s.name)}</td><td>${s.Hadir}</td><td>${s.Izin}</td><td>${s.Sakit}</td><td>${s.Alpa}</td><td>${s.Hadir+s.Izin+s.Sakit+s.Alpa}</td></tr>`).join("")}</tbody></table>`}
+async function loadRecap(){
+  if(!sb)return;
+  const m=$("#month").value;
+  const sid=$("#studentFilter").value;
+  const start=m+"-01";
+  const end=new Date(new Date(start).getFullYear(),new Date(start).getMonth()+1,1).toISOString().slice(0,10);
+
+  let q=sb.from("attendance")
+    .select("student_id,attendance_date,status,scan_time,students(code,name)")
+    .gte("attendance_date",start)
+    .lt("attendance_date",end)
+    .order("attendance_date",{ascending:true});
+
+  if(sid)q=q.eq("student_id",sid);
+
+  const {data,error}=await q;
+  if(error){alert(error.message);return;}
+
+  const rows=data||[];
+
+  $("#recapTable").innerHTML=`
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Kode</th>
+          <th>Nama</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th>Jam</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r,i)=>`
+          <tr>
+            <td>${i+1}</td>
+            <td>${esc(r.students?.code||"")}</td>
+            <td>${esc(r.students?.name||"")}</td>
+            <td>${r.attendance_date}</td>
+            <td>${esc(r.status||"")}</td>
+            <td>${r.scan_time?new Date(r.scan_time).toLocaleTimeString("id-ID"):"-"}</td>
+            <td>
+              <button onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">✏️ Edit</button>
+              <button onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">🗑️ Hapus</button>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
+}
+async function editAttendance(studentId,date,statusLama){
+  const statusBaru=prompt(
+    "Ubah status menjadi:\n\nHadir\nIzin\nSakit\nAlpa",
+    statusLama
+  );
+
+  if(!statusBaru)return;
+
+  const status=statusBaru.trim();
+  if(!["Hadir","Izin","Sakit","Alpa"].includes(status)){
+    alert("Status harus Hadir, Izin, Sakit, atau Alpa.");
+    return;
+  }
+
+  const {error}=await sb
+    .from("attendance")
+    .update({status:status})
+    .eq("student_id",studentId)
+    .eq("attendance_date",date);
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  await loadRecap();
+  alert("Status berhasil diubah menjadi "+status+".");
+}
+
+async function deleteAttendance(studentId,date){
+  if(!confirm("Yakin ingin menghapus data absensi ini?"))return;
+
+  const {error}=await sb
+    .from("attendance")
+    .delete()
+    .eq("student_id",studentId)
+    .eq("attendance_date",date);
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  await loadRecap();
+  alert("Data absensi berhasil dihapus.");
+}
 async function pdf(){await loadRecap();if(!window.jspdf){alert("PDF belum termuat.");return}let {jsPDF}=window.jspdf,d=new jsPDF("l","mm","a4");d.text("SDN WONOLOPO 01 — Rekap Absensi Kelas 5B",14,14);d.text("Periode: "+$("month").value,14,21);let body=[];document.querySelectorAll("#recapTable tbody tr").forEach(tr=>body.push([...tr.children].map(x=>x.innerText)));d.autoTable({head:[["No","Kode","Nama","Hadir","Izin","Sakit","Alpa","Total"]],body,startY:26});d.save("rekap_5B_"+$("month").value+".pdf")}
 init();
 </script></body></html>
