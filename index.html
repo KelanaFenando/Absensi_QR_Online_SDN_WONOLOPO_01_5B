@@ -338,6 +338,141 @@ async function deleteAttendance(studentId,date){
   await loadRecap();
   alert("Data absensi berhasil dihapus.");
 }
-async function pdf(){await loadRecap();if(!window.jspdf){alert("PDF belum termuat.");return}let {jsPDF}=window.jspdf,d=new jsPDF("l","mm","a4");d.text("SDN WONOLOPO 01 — Rekap Absensi Kelas 5B",14,14);d.text("Periode: "+$("month").value,14,21);let body=[];document.querySelectorAll("#recapTable tbody tr").forEach(tr=>body.push([...tr.children].map(x=>x.innerText)));d.autoTable({head:[["No","Kode","Nama","Hadir","Izin","Sakit","Alpa","Total"]],body,startY:26});d.save("rekap_5B_"+$("month").value+".pdf")}
-init();
-</script></body></html>
+async function loadRecap(){
+  if(!sb)return;
+
+  const m=$("#month").value;
+  const sid=$("#studentFilter").value;
+
+  const start=m+"-01";
+  const end=new Date(
+    new Date(start).getFullYear(),
+    new Date(start).getMonth()+1,
+    1
+  ).toISOString().slice(0,10);
+
+  let q=sb.from("attendance")
+    .select("student_id,attendance_date,status,scan_time,students(code,name)")
+    .gte("attendance_date",start)
+    .lt("attendance_date",end)
+    .order("attendance_date",{ascending:true});
+
+  if(sid) q=q.eq("student_id",sid);
+
+  const {data,error}=await q;
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  const rows=data||[];
+
+  const grouped={};
+
+  rows.forEach(r=>{
+    if(!grouped[r.student_id]){
+      grouped[r.student_id]={
+        student_id:r.student_id,
+        code:r.students?.code||"",
+        name:r.students?.name||"",
+        Hadir:0,
+        Izin:0,
+        Sakit:0,
+        Alpa:0,
+        total:0
+      };
+    }
+
+    if(grouped[r.student_id][r.status]!==undefined){
+      grouped[r.student_id][r.status]++;
+    }
+
+    grouped[r.student_id].total++;
+  });
+
+  const recapRows=Object.values(grouped);
+
+  $("#recap").innerHTML=`
+    <h2>Rekap ${m} — SDN WONOLOPO 01 Kelas 5B</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Kode</th>
+          <th>Nama</th>
+          <th>Hadir</th>
+          <th>Izin</th>
+          <th>Sakit</th>
+          <th>Alpa</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${
+          recapRows.map((r,i)=>`
+            <tr>
+              <td>${i+1}</td>
+              <td>${esc(r.code)}</td>
+              <td>${esc(r.name)}</td>
+              <td>${r.Hadir}</td>
+              <td>${r.Izin}</td>
+              <td>${r.Sakit}</td>
+              <td>${r.Alpa}</td>
+              <td>${r.total}</td>
+            </tr>
+          `).join("")
+        }
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:25px">Detail Absensi</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Kode</th>
+          <th>Nama</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th>Jam</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${
+          rows.map((r,i)=>`
+            <tr>
+              <td>${i+1}</td>
+              <td>${esc(r.students?.code||"")}</td>
+              <td>${esc(r.students?.name||"")}</td>
+              <td>${r.attendance_date}</td>
+              <td>${esc(r.status||"")}</td>
+              <td>
+                ${r.scan_time
+                  ? new Date(r.scan_time).toLocaleTimeString("id-ID")
+                  : "-"
+                }
+              </td>
+              <td>
+                <button
+                  onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">
+                  ✏️ Edit
+                </button>
+
+                <button
+                  onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">
+                  🗑️ Hapus
+                </button>
+              </td>
+            </tr>
+          `).join("")
+        }
+      </tbody>
+    </table>
+  `;
+}
