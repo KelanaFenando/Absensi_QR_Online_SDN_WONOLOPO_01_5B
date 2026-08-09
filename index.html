@@ -116,54 +116,181 @@ function oneQR(code,name){let w=open("","_blank","width=500,height=650");w.docum
 function printQR(){let w=open("","_blank");w.document.write(`<style>body{font-family:Arial}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.x{text-align:center;border:1px solid #ddd;padding:12px;page-break-inside:avoid}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><h2>SDN WONOLOPO 01 — Kelas 5B</h2><div class=grid>${students.map((s,i)=>`<div class=x><div id=q${i}></div><b>${esc(s.name)}</b><br>${s.code}</div>`).join("")}</div><script>${students.map((s,i)=>`new QRCode(q${i},{text:${JSON.stringify(s.code)},width:150,height:150});`).join("")}setTimeout(()=>print(),1000)<\/script>`);w.document.close()}
 async function loadRecap(){
   if(!sb)return;
+
   const m=$("#month").value;
   const sid=$("#studentFilter").value;
   const start=m+"-01";
-  const end=new Date(new Date(start).getFullYear(),new Date(start).getMonth()+1,1).toISOString().slice(0,10);
+  const end=new Date(
+    new Date(start).getFullYear(),
+    new Date(start).getMonth()+1,
+    1
+  ).toISOString().slice(0,10);
 
-  let q=sb.from("attendance")
+  let q=sb
+    .from("attendance")
     .select("student_id,attendance_date,status,scan_time,students(code,name)")
     .gte("attendance_date",start)
     .lt("attendance_date",end)
-    .order("attendance_date",{ascending:true});
+    .order("attendance_date",{ascending:true})
+    .order("scan_time",{ascending:true});
 
-  if(sid)q=q.eq("student_id",sid);
+  if(sid) q=q.eq("student_id",sid);
 
   const {data,error}=await q;
-  if(error){alert(error.message);return;}
+
+  if(error){
+    alert(error.message);
+    return;
+  }
 
   const rows=data||[];
 
+  if(!rows.length){
+    $("#recapTable").innerHTML=`
+      <div class="card">
+        <b>Belum ada data absensi pada bulan ${m}.</b>
+      </div>`;
+    return;
+  }
+
   $("#recapTable").innerHTML=`
-    <table>
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Kode</th>
-          <th>Nama</th>
-          <th>Tanggal</th>
-          <th>Status</th>
-          <th>Jam</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map((r,i)=>`
-          <tr>
-            <td>${i+1}</td>
-            <td>${esc(r.students?.code||"")}</td>
-            <td>${esc(r.students?.name||"")}</td>
-            <td>${r.attendance_date}</td>
-            <td>${esc(r.status||"")}</td>
-            <td>${r.scan_time?new Date(r.scan_time).toLocaleTimeString("id-ID"):"-"}</td>
-            <td>
-              <button onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">✏️ Edit</button>
-              <button onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">🗑️ Hapus</button>
-            </td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>`;
+    <div class="card">
+      <h2>Data Absensi ${m}</h2>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Kode</th>
+              <th>Nama</th>
+              <th>Tanggal</th>
+              <th>Status</th>
+              <th>Jam</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${rows.map((r,i)=>`
+              <tr>
+                <td>${i+1}</td>
+
+                <td>${esc(r.students?.code||"")}</td>
+
+                <td>${esc(r.students?.name||"")}</td>
+
+                <td>${r.attendance_date||"-"}</td>
+
+                <td>
+                  <b>${esc(r.status||"")}</b>
+                </td>
+
+                <td>
+                  ${r.scan_time
+                    ? new Date(r.scan_time)
+                        .toLocaleTimeString("id-ID")
+                    : "-"
+                  }
+                </td>
+
+                <td style="white-space:nowrap">
+
+                  <button
+                    type="button"
+                    onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">
+                    ✏️ Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">
+                    🗑️ Hapus
+                  </button>
+
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+
+/* =========================
+   EDIT STATUS ABSENSI
+   ========================= */
+
+async function editAttendance(studentId,date,statusLama){
+
+  const pilihan=prompt(
+    "Ubah status menjadi:\n\n" +
+    "Hadir\n" +
+    "Izin\n" +
+    "Sakit\n" +
+    "Alpa\n\n" +
+    "Status sekarang: "+statusLama,
+    statusLama
+  );
+
+  if(pilihan===null)return;
+
+  const status=pilihan.trim();
+
+  const statusValid=["Hadir","Izin","Sakit","Alpa"];
+
+  if(!statusValid.includes(status)){
+    alert("Status tidak valid.\nGunakan: Hadir, Izin, Sakit, atau Alpa.");
+    return;
+  }
+
+  const {error}=await sb
+    .from("attendance")
+    .update({
+      status:status
+    })
+    .eq("student_id",studentId)
+    .eq("attendance_date",date);
+
+  if(error){
+    alert("Gagal mengubah status:\n"+error.message);
+    return;
+  }
+
+  alert("Status berhasil diubah menjadi "+status+".");
+
+  await loadRecap();
+}
+
+
+/* =========================
+   HAPUS ABSENSI
+   ========================= */
+
+async function deleteAttendance(studentId,date){
+
+  const yakin=confirm(
+    "Apakah Anda yakin ingin menghapus absensi tanggal "+
+    date+"?\n\nData yang dihapus tidak dapat dikembalikan."
+  );
+
+  if(!yakin)return;
+
+  const {error}=await sb
+    .from("attendance")
+    .delete()
+    .eq("student_id",studentId)
+    .eq("attendance_date",date);
+
+  if(error){
+    alert("Gagal menghapus absensi:\n"+error.message);
+    return;
+  }
+
+  alert("Data absensi berhasil dihapus.");
+
+  await loadRecap();
 }
 async function editAttendance(studentId,date,statusLama){
   const statusBaru=prompt(
