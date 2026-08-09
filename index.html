@@ -164,10 +164,56 @@ async function getStudents(){
 async function renderStudents(){
   const students=await getStudents();
   $("statStudents").textContent=students.length;
-  $("studentsTable").innerHTML=`<table>
-    <thead><tr><th>No</th><th>Kode QR</th><th>Nama</th><th>NIS</th><th>NISN</th></tr></thead>
-    <tbody>${students.map((s,i)=>`<tr><td>${i+1}</td><td><b>${esc(s.code)}</b></td><td>${esc(s.name||"")}</td><td>${esc(s.nis||"")}</td><td>${esc(s.nisn||"")}</td></tr>`).join("")}</tbody>
-  </table>`;
+  $("#studentsTable").innerHTML=`
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>QR Code</th>
+<th>Kode</th>
+<th>Nama</th>
+<th>NIS</th>
+<th>NISN</th>
+<th>Aksi</th>
+</tr>
+</thead>
+
+<tbody>
+${students.map((s,i)=>`
+<tr>
+<td>${i+1}</td>
+
+<td>
+<div id="qr-${s.id}"></div>
+</td>
+
+<td><b>${esc(s.code)}</b></td>
+
+<td>${esc(s.name||"")}</td>
+
+<td>${esc(s.nis||"")}</td>
+
+<td>${esc(s.nisn||"")}</td>
+
+<td>
+<button onclick="printQR('${s.code}','${esc(s.name||"")}')">
+🖨️ Cetak QR
+</button>
+</td>
+
+</tr>
+`).join("")}
+</tbody>
+</table>
+`;
+
+students.forEach(s=>{
+  new QRCode(document.getElementById("qr-"+s.id),{
+    text:s.code,
+    width:100,
+    height:100
+  });
+});
   $("studentFilter").innerHTML='<option value="">Semua siswa</option>'+
     students.map(s=>`<option value="${s.id||""}">${esc(s.code)} — ${esc(s.name||"")}</option>`).join("");
 }
