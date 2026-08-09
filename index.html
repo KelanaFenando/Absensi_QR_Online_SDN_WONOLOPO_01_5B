@@ -89,16 +89,31 @@ function putarLagu(){
 <section id="recap" class="tab"><div class="card no-print"><h2>Rekap</h2><div class="formgrid"><label>Bulan<input type="month" id="month"></label><label>Siswa<select id="studentFilter"><option value="">Semua siswa</option></select></label></div><div class="actions"><button onclick="loadRecap()">Tampilkan</button><button class="secondary" onclick="window.print()">🖨️ Print</button><button class="secondary" onclick="pdf()">PDF</button></div></div><div class="card" id="recapTable"></div></section>
 </main>
 <script>
-const CONFIG={SUPABASE_URL:"https://akkzhhgqqzzadzudlcfu.supabase.co",SUPABASE_KEY:"sb_publishable_r9DWINq7OH2jlWFuhsi-dA_VakEzWj6"};
+const CONFIG={
+  SUPABASE_URL:"https://akkzhhgqqzzadzudlcfu.supabase.co",
+  SUPABASE_KEY:"sb_publishable_r9DWINq7OH2jlWFuhsi-dA_VakEzWj6"
+};
 let sb=null, students=[], scanner=null;
 const $=id=>document.getElementById(id);
-function configured(){return CONFIG.SUPABASE_URL.startsWith("http")&&CONFIG.SUPABASE_KEY.length>20}
+function configured(){
+  return CONFIG.SUPABASE_URL.startsWith("http") &&
+         CONFIG.SUPABASE_KEY.length>20;
+}
+
 async function init(){
- $("month").value=new Date().toISOString().slice(0,7);
- if(!configured()){return}
- sb=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_KEY);
- $("setup").className="card ok";$("setup").innerHTML="<b>Database siap dikonfigurasi.</b> Jika data belum muncul, pastikan SQL schema sudah dijalankan di Supabase.";
- await loadStudents(); await dashboard();
+  $("month").value=new Date().toISOString().slice(0,7);
+
+  if(!configured()){
+    return;
+  }
+
+  sb=supabase.createClient(
+    CONFIG.SUPABASE_URL,
+    CONFIG.SUPABASE_KEY
+  );
+
+  await loadStudents();
+  await dashboard();
 }
 function tab(id){document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));$(id).classList.add("active");if(id==="dashboard")dashboard();if(id==="students")renderStudents();if(id==="recap")loadRecap()}
 async function loadStudents(){if(!sb)return;let {data,error}=await sb.from("students").select("*").eq("class_name","5B").order("student_no");if(error){alert(error.message);return}students=data||[]; $("total").textContent=students.length;renderStudents();$("studentFilter").innerHTML='<option value="">Semua siswa</option>'+students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}
