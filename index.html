@@ -115,78 +115,128 @@ async function stopScanner(){if(scanner){try{await scanner.stop()}catch(e){}scan
 function oneQR(code,name){let w=open("","_blank","width=500,height=650");w.document.write(`<body style="font-family:Arial;text-align:center;padding:30px"><h2>SDN WONOLOPO 01</h2><h3>Kelas 5B</h3><div id=q></div><h3>${name}</h3><p>${code}</p><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><script>new QRCode(q,{text:${JSON.stringify(code)},width:260,height:260});setTimeout(()=>print(),700)<\/script>`);w.document.close()}
 function printQR(){let w=open("","_blank");w.document.write(`<style>body{font-family:Arial}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.x{text-align:center;border:1px solid #ddd;padding:12px;page-break-inside:avoid}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><h2>SDN WONOLOPO 01 — Kelas 5B</h2><div class=grid>${students.map((s,i)=>`<div class=x><div id=q${i}></div><b>${esc(s.name)}</b><br>${s.code}</div>`).join("")}</div><script>${students.map((s,i)=>`new QRCode(q${i},{text:${JSON.stringify(s.code)},width:150,height:150});`).join("")}setTimeout(()=>print(),1000)<\/script>`);w.document.close()}
 async function loadRecap(){
-  if(!sb)return;
-
-  const m=$("#month").value;
-  const sid=$("#studentFilter").value;
-
-  const start=m+"-01";
-  const end=new Date(
-    new Date(start).getFullYear(),
-    new Date(start).getMonth()+1,
-    1
-  ).toISOString().slice(0,10);
-
-  let q=sb
-    .from("attendance")
-    .select("student_id,attendance_date,status,scan_time,students(code,name)")
-    .gte("attendance_date",start)
-    .lt("attendance_date",end)
-    .order("attendance_date",{ascending:true})
-    .order("scan_time",{ascending:true});
-
-  if(sid) q=q.eq("student_id",sid);
-
-  const {data,error}=await q;
-
-  if(error){
-    alert(error.message);
+  if(!sb){
+    alert("Database belum terhubung.");
     return;
   }
 
-  const rows=data||[];
+  const m = $("#month").value;
+  const sid = $("#studentFilter").value;
 
-  $("#recapTable").innerHTML=`
+  if(!m){
+    alert("Pilih bulan terlebih dahulu.");
+    return;
+  }
+
+  const start = m + "-01";
+
+  const end = new Date(
+    new Date(start).getFullYear(),
+    new Date(start).getMonth() + 1,
+    1
+  ).toISOString().slice(0,10);
+
+  let q = sb
+    .from("attendance")
+    .select(
+      "student_id,attendance_date,status,scan_time,students(code,name)"
+    )
+    .gte("attendance_date", start)
+    .lt("attendance_date", end)
+    .order("attendance_date",{ascending:true})
+    .order("scan_time",{ascending:true});
+
+  if(sid){
+    q = q.eq("student_id", sid);
+  }
+
+  const {data,error} = await q;
+
+  if(error){
+    alert("Gagal mengambil data rekap:\n" + error.message);
+    return;
+  }
+
+  const rows = data || [];
+
+  $("#recapTable").innerHTML = `
     <h2>Rekap ${m} — SDN WONOLOPO 01 Kelas 5B</h2>
 
-    <table>
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Kode</th>
-          <th>Nama</th>
-          <th>Tanggal</th>
-          <th>Status</th>
-          <th>Jam</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
+    ${
+      rows.length === 0
+      ? `<p style="padding:20px;text-align:center">
+           Tidak ada data absensi pada bulan ini.
+         </p>`
+      : `
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Kode</th>
+              <th>Nama</th>
+              <th>Tanggal</th>
+              <th>Status</th>
+              <th>Jam</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
 
-      <tbody>
-        ${rows.map((r,i)=>`
-          <tr>
-            <td>${i+1}</td>
-            <td>${esc(r.students?.code||"")}</td>
-            <td>${esc(r.students?.name||"")}</td>
-            <td>${r.attendance_date}</td>
-            <td>${esc(r.status||"")}</td>
-            <td>${r.scan_time
-              ? new Date(r.scan_time).toLocaleTimeString("id-ID")
-              : "-"
-            }</td>
-            <td>
-              <button onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">
-                ✏️ Edit
-              </button>
+          <tbody>
+            ${rows.map((r,i)=>`
+              <tr>
+                <td>${i+1}</td>
 
-              <button onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">
-                🗑️ Hapus
-              </button>
-            </td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
+                <td>
+                  ${esc(r.students?.code || "")}
+                </td>
+
+                <td>
+                  ${esc(r.students?.name || "")}
+                </td>
+
+                <td>
+                  ${r.attendance_date}
+                </td>
+
+                <td>
+                  ${esc(r.status || "")}
+                </td>
+
+                <td>
+                  ${
+                    r.scan_time
+                    ? new Date(r.scan_time)
+                        .toLocaleTimeString("id-ID")
+                    : "-"
+                  }
+                </td>
+
+                <td>
+                  <button
+                    onclick="editAttendance(
+                      '${r.student_id}',
+                      '${r.attendance_date}',
+                      '${r.status}'
+                    )"
+                  >
+                    ✏️ Edit
+                  </button>
+
+                  <button
+                    onclick="deleteAttendance(
+                      '${r.student_id}',
+                      '${r.attendance_date}'
+                    )"
+                  >
+                    🗑️ Hapus
+                  </button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `
+    }
   `;
 }
 /* =========================
@@ -364,7 +414,7 @@ async function loadRecap(){
 
   const recapRows=Object.values(grouped);
 
-  $("#recap").innerHTML=`
+  $("#recapTable").innerHTML=`
     <h2>Rekap ${m} — SDN WONOLOPO 01 Kelas 5B</h2>
 
     <table>
