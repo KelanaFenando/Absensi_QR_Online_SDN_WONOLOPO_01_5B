@@ -146,82 +146,49 @@ async function loadRecap(){
 
   const rows=data||[];
 
-  if(!rows.length){
-    $("#recapTable").innerHTML=`
-      <div class="card">
-        <b>Belum ada data absensi pada bulan ${m}.</b>
-      </div>`;
-    return;
-  }
-
   $("#recapTable").innerHTML=`
-    <div class="card">
-      <h2>Data Absensi ${m}</h2>
+    <h2>Rekap ${m} — SDN WONOLOPO 01 Kelas 5B</h2>
 
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Kode</th>
-              <th>Nama</th>
-              <th>Tanggal</th>
-              <th>Status</th>
-              <th>Jam</th>
-              <th class="no-print">Aksi</th>
-            </tr>
-          </thead>
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Kode</th>
+          <th>Nama</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th>Jam</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
 
-          <tbody>
-            ${rows.map((r,i)=>`
-              <tr>
-                <td>${i+1}</td>
-                <td>${esc(r.students?.code||"")}</td>
-                <td>${esc(r.students?.name||"")}</td>
-                <td>${r.attendance_date||"-"}</td>
+      <tbody>
+        ${rows.map((r,i)=>`
+          <tr>
+            <td>${i+1}</td>
+            <td>${esc(r.students?.code||"")}</td>
+            <td>${esc(r.students?.name||"")}</td>
+            <td>${r.attendance_date}</td>
+            <td>${esc(r.status||"")}</td>
+            <td>${r.scan_time
+              ? new Date(r.scan_time).toLocaleTimeString("id-ID")
+              : "-"
+            }</td>
+            <td>
+              <button onclick="editAttendance('${r.student_id}','${r.attendance_date}','${r.status}')">
+                ✏️ Edit
+              </button>
 
-                <td>
-                  <b>${esc(r.status||"")}</b>
-                </td>
-
-                <td>
-                  ${
-                    r.scan_time
-                    ? new Date(r.scan_time).toLocaleTimeString("id-ID")
-                    : "-"
-                  }
-                </td>
-
-                <td class="no-print" style="white-space:nowrap">
-
-                  <button
-                    type="button"
-                    onclick="editAttendance(
-                      '${r.student_id}',
-                      '${r.attendance_date}',
-                      '${r.status}'
-                    )">
-                    ✏️ Edit
-                  </button>
-
-                  <button
-                    type="button"
-                    onclick="deleteAttendance(
-                      '${r.student_id}',
-                      '${r.attendance_date}'
-                    )">
-                    🗑️ Hapus
-                  </button>
-
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
+              <button onclick="deleteAttendance('${r.student_id}','${r.attendance_date}')">
+                🗑️ Hapus
+              </button>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
 }
-
 /* =========================
    EDIT STATUS ABSENSI
    ========================= */
