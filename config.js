@@ -6,7 +6,7 @@
 // JANGAN gunakan service_role key di website.
 
 window.SUPABASE_URL = "https://akkzhhgqqzzadzudlcfu.supabase.co";
-window.SUPABASE_ANON_KEY = "GANTI_DENGAN_ANON_PUBLIC_KEY";
+window.SUPABASE_ANON_KEY = "sb_publishable_r9DWINq7OH2jlWFuhsi-dA_VakEzWj6";
 window.SCHOOL_NAME = "SDN WONOLOPO 01";
 window.CLASS_NAME = "5B";
 window.TEACHER_NAME = "Kelana Gusti Arwan Fernando, S.Pd.,Gr.";
